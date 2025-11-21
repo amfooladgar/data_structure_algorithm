@@ -1,0 +1,123 @@
+name: Update LeetCode Stats
+
+on:
+  schedule:
+    # Run daily at 00:00 UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  update-stats:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      
+      - name: Install dependencies
+        run: |
+          pip install requests
+      
+      - name: Fetch LeetCode Stats
+        id: fetch-stats
+        run: |
+          python << 'EOF'
+          import requests
+          import json
+          import re
+          from datetime import datetime
+          
+          # Fetch stats from LeetCode API
+          response = requests.get('https://leetcode-stats-api.herokuapp.com/amfooladgar')
+          data = response.json()
+          
+          if data['status'] == 'success':
+              # Read current README
+              with open('README.md', 'r') as f:
+                  readme = f.read()
+              
+              # Update stats section
+              stats_section = f"""<!-- LEETCODE_STATS:START -->
+![Total Solved](https://img.shields.io/badge/Total_Solved-{data['totalSolved']}-brightgreen?style=flat-square)
+![Easy](https://img.shields.io/badge/Easy-{data['easySolved']}-5cb85c?style=flat-square)
+![Medium](https://img.shields.io/badge/Medium-{data['mediumSolved']}-f0ad4e?style=flat-square)
+![Hard](https://img.shields.io/badge/Hard-{data['hardSolved']}-d9534f?style=flat-square)
+
+**Acceptance Rate:** {data['acceptanceRate']}% | **Ranking:** {data['ranking']:,} | **Contribution Points:** {data['contributionPoints']:,}
+<!-- LEETCODE_STATS:END -->"""
+              
+              # Replace stats section
+              readme = re.sub(
+                  r'<!-- LEETCODE_STATS:START -->.*?<!-- LEETCODE_STATS:END -->',
+                  stats_section,
+                  readme,
+                  flags=re.DOTALL
+              )
+              
+              # Update progress tracking
+              total_problems = data['totalQuestions']
+              solved = data['totalSolved']
+              easy_solved = data['easySolved']
+              medium_solved = data['mediumSolved']
+              hard_solved = data['hardSolved']
+              total_easy = data['totalEasy']
+              total_medium = data['totalMedium']
+              total_hard = data['totalHard']
+              
+              easy_pct = (easy_solved / total_easy * 100) if total_easy > 0 else 0
+              medium_pct = (medium_solved / total_medium * 100) if total_medium > 0 else 0
+              hard_pct = (hard_solved / total_hard * 100) if total_hard > 0 else 0
+              overall_pct = (solved / total_problems * 100) if total_problems > 0 else 0
+              
+              easy_bar = '█' * int(easy_pct / 5) + '░' * (20 - int(easy_pct / 5))
+              medium_bar = '█' * int(medium_pct / 5) + '░' * (20 - int(medium_pct / 5))
+              hard_bar = '█' * int(hard_pct / 5) + '░' * (20 - int(hard_pct / 5))
+              
+              progress_section = f"""```
+Total Problems: {total_problems:,}
+Solved: {solved} ({overall_pct:.1f}%)
+
+Easy:     {easy_solved}/{total_easy}   ({easy_pct:.1f}%)  {easy_bar}
+Medium:  {medium_solved}/{total_medium:,} ({medium_pct:.1f}%)  {medium_bar}
+Hard:     {hard_solved}/{total_hard}   ({hard_pct:.1f}%)  {hard_bar}
+```"""
+              
+              # Replace progress section
+              readme = re.sub(
+                  r'```\nTotal Problems:.*?```',
+                  progress_section,
+                  readme,
+                  flags=re.DOTALL
+              )
+              
+              # Update last updated date
+              current_date = datetime.now().strftime('%Y-%m-%d')
+              readme = re.sub(
+                  r'<!-- LAST_UPDATE:START -->.*?<!-- LAST_UPDATE:END -->',
+                  f'<!-- LAST_UPDATE:START -->{current_date}<!-- LAST_UPDATE:END -->',
+                  readme
+              )
+              
+              # Write updated README
+              with open('README.md', 'w') as f:
+                  f.write(readme)
+              
+              print(f"Stats updated successfully! Total solved: {solved}")
+          else:
+              print("Failed to fetch stats")
+              exit(1)
+          EOF
+      
+      - name: Commit and push if changed
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add README.md
+          git diff --quiet && git diff --staged --quiet || (git commit -m "🤖 Auto-update LeetCode stats" && git push)
