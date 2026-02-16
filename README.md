@@ -9,12 +9,12 @@ A comprehensive collection of my LeetCode journey, algorithm practice, and inter
 ## 📊 LeetCode Statistics
 
 <!-- LEETCODE_STATS:START -->
-![Total Solved](https://img.shields.io/badge/Total_Solved-355-brightgreen?style=flat-square)
-![Easy](https://img.shields.io/badge/Easy-102-5cb85c?style=flat-square)
+![Total Solved](https://img.shields.io/badge/Total_Solved-356-brightgreen?style=flat-square)
+![Easy](https://img.shields.io/badge/Easy-103-5cb85c?style=flat-square)
 ![Medium](https://img.shields.io/badge/Medium-199-f0ad4e?style=flat-square)
 ![Hard](https://img.shields.io/badge/Hard-54-d9534f?style=flat-square)
 
-**Acceptance Rate:** 73.95% | **Ranking:** 333,491 | **Contribution Points:** 1,686
+**Acceptance Rate:** 74.01% | **Ranking:** 332,381 | **Contribution Points:** 1,697
 <!-- LEETCODE_STATS:END -->
 
 > 📅 **Last Updated:** Auto-updated daily via GitHub Actions
@@ -62,12 +62,12 @@ Additional practice problems and miscellaneous challenges.
 ## 🎯 Progress Tracking
 
 ```
-Total Problems: 3,841
-Solved: 355 (9.2%)
+Total Problems: 3,845
+Solved: 356 (9.3%)
 
-Easy:     102/926   (11.0%)  ██░░░░░░░░░░░░░░░░░░
-Medium:  199/2,007 (9.9%)  █░░░░░░░░░░░░░░░░░░░
-Hard:     54/908   (5.9%)  █░░░░░░░░░░░░░░░░░░░
+Easy:     103/927   (11.1%)  ██░░░░░░░░░░░░░░░░░░
+Medium:  199/2,009 (9.9%)  █░░░░░░░░░░░░░░░░░░░
+Hard:     54/909   (5.9%)  █░░░░░░░░░░░░░░░░░░░
 ```
 
 ---
@@ -121,6 +121,6 @@ This repository follows a structured approach to mastering data structures and a
 
 **Happy Coding! 🚀**
 
-*Last auto-updated: <!-- LAST_UPDATE:START -->2026-02-15<!-- LAST_UPDATE:END -->*
+*Last auto-updated: <!-- LAST_UPDATE:START -->2026-02-16<!-- LAST_UPDATE:END -->*
 
 </div>
