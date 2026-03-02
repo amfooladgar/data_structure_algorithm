@@ -2,41 +2,104 @@ name: Update LeetCode Stats
 
 on:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: "0 0 * * *"
   workflow_dispatch:
 
 jobs:
   update-stats:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # This is the key permission needed
-    
+      contents: write # This is the key permission needed
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
-      
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
-      
+          python-version: "3.10"
+
       - name: Install dependencies
         run: pip install requests
-      
+
       - name: Create update script
         run: |
           cat > update_stats.py << 'SCRIPT_EOF'
           import requests
           import re
+          import json
           from datetime import datetime
-          
-          response = requests.get('https://leetcode-stats-api.herokuapp.com/amfooladgar')
-          data = response.json()
-          
-          if data['status'] == 'success':
+
+          def get_stats(username):
+              url = 'https://leetcode.com/graphql/'
+              query = """
+              query getUserProfile($username: String!) {
+                allQuestionsCount {
+                  difficulty
+                  count
+                }
+                matchedUser(username: $username) {
+                  contributions {
+                    points
+                  }
+                  profile {
+                    ranking
+                  }
+                  submitStats {
+                    acSubmissionNum {
+                      difficulty
+                      count
+                      submissions
+                    }
+                    totalSubmissionNum {
+                      difficulty
+                      count
+                      submissions
+                    }
+                  }
+                }
+              }
+              """
+              variables = {'username': username}
+              response = requests.post(url, json={'query': query, 'variables': variables}, timeout=15)
+              response.raise_for_status()
+              res_data = response.json()
+              if 'errors' in res_data:
+                  raise Exception(f"GraphQL Errors: {res_data['errors']}")
+              return res_data['data']
+
+          try:
+              data = get_stats('amfooladgar')
+              matched_user = data['matchedUser']
+              if not matched_user:
+                  raise Exception("User not found")
+              
+              ac_stats = {s['difficulty']: s for s in matched_user['submitStats']['acSubmissionNum']}
+              total_stats = {s['difficulty']: s for s in matched_user['submitStats']['totalSubmissionNum']}
+              count_stats = {c['difficulty']: c['count'] for c in data['allQuestionsCount']}
+              
+              total_solved = ac_stats['All']['count']
+              easy_solved = ac_stats['Easy']['count']
+              medium_solved = ac_stats['Medium']['count']
+              hard_solved = ac_stats['Hard']['count']
+              
+              total_questions = count_stats['All']
+              total_easy = count_stats['Easy']
+              total_medium = count_stats['Medium']
+              total_hard = count_stats['Hard']
+              
+              # Calculate acceptance rate: (Accepted Submissions / Total Submissions) * 100
+              ac_subs = ac_stats['All']['submissions']
+              total_subs = total_stats['All']['submissions']
+              acceptance_rate = (ac_subs / total_subs * 100) if total_subs > 0 else 0
+              
+              ranking = matched_user['profile']['ranking']
+              contribution_points = matched_user['contributions']['points']
+
               with open('README.md', 'r') as f:
                   readme = f.read()
               
@@ -45,16 +108,16 @@ jobs:
           ![Easy](https://img.shields.io/badge/Easy-{easySolved}-5cb85c?style=flat-square)
           ![Medium](https://img.shields.io/badge/Medium-{mediumSolved}-f0ad4e?style=flat-square)
           ![Hard](https://img.shields.io/badge/Hard-{hardSolved}-d9534f?style=flat-square)
-          
-          **Acceptance Rate:** {acceptanceRate}% | **Ranking:** {ranking:,} | **Contribution Points:** {contributionPoints:,}
+
+          **Acceptance Rate:** {acceptanceRate:.1f}% | **Ranking:** {ranking:,} | **Contribution Points:** {contributionPoints:,}
           <!-- LEETCODE_STATS:END -->""".format(
-                  totalSolved=data['totalSolved'],
-                  easySolved=data['easySolved'],
-                  mediumSolved=data['mediumSolved'],
-                  hardSolved=data['hardSolved'],
-                  acceptanceRate=data['acceptanceRate'],
-                  ranking=data['ranking'],
-                  contributionPoints=data['contributionPoints']
+                  totalSolved=total_solved,
+                  easySolved=easy_solved,
+                  mediumSolved=medium_solved,
+                  hardSolved=hard_solved,
+                  acceptanceRate=acceptance_rate,
+                  ranking=ranking,
+                  contributionPoints=contribution_points
               )
               
               readme = re.sub(
@@ -64,19 +127,10 @@ jobs:
                   flags=re.DOTALL
               )
               
-              total_problems = data['totalQuestions']
-              solved = data['totalSolved']
-              easy_solved = data['easySolved']
-              medium_solved = data['mediumSolved']
-              hard_solved = data['hardSolved']
-              total_easy = data['totalEasy']
-              total_medium = data['totalMedium']
-              total_hard = data['totalHard']
-              
               easy_pct = (easy_solved / total_easy * 100) if total_easy > 0 else 0
               medium_pct = (medium_solved / total_medium * 100) if total_medium > 0 else 0
               hard_pct = (hard_solved / total_hard * 100) if total_hard > 0 else 0
-              overall_pct = (solved / total_problems * 100) if total_problems > 0 else 0
+              overall_pct = (total_solved / total_questions * 100) if total_questions > 0 else 0
               
               easy_bar = '█' * int(easy_pct / 5) + '░' * (20 - int(easy_pct / 5))
               medium_bar = '█' * int(medium_pct / 5) + '░' * (20 - int(medium_pct / 5))
@@ -85,13 +139,13 @@ jobs:
               progress_section = """```
           Total Problems: {total_problems:,}
           Solved: {solved} ({overall_pct:.1f}%)
-          
+
           Easy:     {easy_solved}/{total_easy}   ({easy_pct:.1f}%)  {easy_bar}
           Medium:  {medium_solved}/{total_medium:,} ({medium_pct:.1f}%)  {medium_bar}
           Hard:     {hard_solved}/{total_hard}   ({hard_pct:.1f}%)  {hard_bar}
           ```""".format(
-                  total_problems=total_problems,
-                  solved=solved,
+                  total_problems=total_questions,
+                  solved=total_solved,
                   overall_pct=overall_pct,
                   easy_solved=easy_solved,
                   total_easy=total_easy,
@@ -124,15 +178,15 @@ jobs:
               with open('README.md', 'w') as f:
                   f.write(readme)
               
-              print("Stats updated successfully! Total solved: " + str(solved))
-          else:
-              print("Failed to fetch stats")
+              print("Stats updated successfully! Total solved: " + str(total_solved))
+          except Exception as e:
+              print(f"Error updating stats: {e}")
               exit(1)
           SCRIPT_EOF
-      
+
       - name: Run update script
         run: python update_stats.py
-      
+
       - name: Commit and push if changed
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
