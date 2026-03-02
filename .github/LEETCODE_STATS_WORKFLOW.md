@@ -82,13 +82,13 @@ jobs:
   update-stats:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # KEY FIX
+      contents: write
     
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}  # KEY FIX
+          token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
       
       - name: Set up Python
@@ -102,7 +102,71 @@ jobs:
       - name: Create update script
         run: |
           cat > update_stats.py << 'SCRIPT_EOF'
-          # Python script content here
+          import requests
+          import re
+          import json
+          from datetime import datetime
+          
+          def get_stats(username):
+              url = 'https://leetcode.com/graphql/'
+              query = """
+              query getUserProfile($username: String!) {
+                allQuestionsCount {
+                  difficulty
+                  count
+                }
+                matchedUser(username: $username) {
+                  contributions {
+                    points
+                  }
+                  profile {
+                    ranking
+                  }
+                  submitStats {
+                    acSubmissionNum {
+                      difficulty
+                      count
+                      submissions
+                    }
+                    totalSubmissionNum {
+                      difficulty
+                      count
+                      submissions
+                    }
+                  }
+                }
+              }
+              """
+              variables = {'username': username}
+              response = requests.post(url, json={'query': query, 'variables': variables}, timeout=15)
+              response.raise_for_status()
+              res_data = response.json()
+              if 'errors' in res_data:
+                  raise Exception(f"GraphQL Errors: {res_data['errors']}")
+              return res_data['data']
+
+          try:
+              data = get_stats('amfooladgar')
+              matched_user = data['matchedUser']
+              if not matched_user:
+                  raise Exception("User not found")
+              
+              ac_stats = {s['difficulty']: s for s in matched_user['submitStats']['acSubmissionNum']}
+              total_stats = {s['difficulty']: s for s in matched_user['submitStats']['totalSubmissionNum']}
+              count_stats = {c['difficulty']: c['count'] for c in data['allQuestionsCount']}
+              
+              total_solved = ac_stats['All']['count']
+              easy_solved = ac_stats['Easy']['count']
+              # ... (rest of parsing logic)
+              # ... (README update regex logic)
+
+              with open('README.md', 'w') as f:
+                  f.write(readme)
+              
+              print("Stats updated successfully!")
+          except Exception as e:
+              print(f"Error updating stats: {e}")
+              exit(1)
           SCRIPT_EOF
       
       - name: Run update script
@@ -141,6 +205,14 @@ jobs:
 
 ---
 
+### Issue 4: Unstable Third-party API (JSONDecodeError)
+
+**Problem**: The script fails with `json.decoder.JSONDecodeError` because the external API `leetcode-stats-api.herokuapp.com` is down or returning invalid JSON.
+
+**Solution**: Switch to the official LeetCode GraphQL API. This requires updating the Python script to send a POST request with a GraphQL query and parsing the nested response.
+
+---
+
 ## Manual Trigger
 
 To manually trigger the workflow:
@@ -162,26 +234,26 @@ After fixing issues, verify the workflow:
 
 ## API Information
 
-**LeetCode Stats API**: `https://leetcode-stats-api.herokuapp.com/amfooladgar`
+**LeetCode Official GraphQL API**: `https://leetcode.com/graphql/`
 
-**Returns**:
-- Total problems solved
-- Problems by difficulty (easy, medium, hard)
-- Acceptance rate
-- Ranking
-- Contribution points
-- Submission calendar
+**Query**: `getUserProfile` (Fetches comprehensive user statistics)
+
+**Fields Extracted**:
+- Total questions count by difficulty
+- Problems solved (Easy, Medium, Hard, All)
+- Submission stats (used for acceptance rate calculation)
+- Global Ranking
+- Contribution Points
 
 ---
 
 ## Maintenance Notes
 
 - The workflow runs daily at 00:00 UTC
-- Stats are fetched from a third-party API (not official LeetCode API)
-- If the API changes or becomes unavailable, the workflow will fail
-- Check Actions tab regularly for any failures
+- Stats are fetched from the **official LeetCode GraphQL API**
+- The script uses `requests.post` to interact with the GraphQL endpoint
 - README.md markers: `<!-- LEETCODE_STATS:START -->` and `<!-- LEETCODE_STATS:END -->`
 
 ---
 
-*Last Updated: 2025-11-21*
+*Last Updated: 2026-03-02*
