@@ -11,7 +11,7 @@ def search_paths(regex, filename, show_line_number, show_filenames, show_filenam
     try:
         with open(filename, mode="r", encoding="utf-8", errors="replace") as f:
             for line_number, line in enumerate(f, start=1):
-                if re.search(regex, line):
+                if regex.search(line):
                     found = True
                     if show_filenames_only:
                         print(filename)
