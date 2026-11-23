@@ -14,7 +14,7 @@ A comprehensive collection of my LeetCode journey, algorithm practice, and inter
 ![Medium](https://img.shields.io/badge/Medium-338-f0ad4e?style=flat-square)
 ![Hard](https://img.shields.io/badge/Hard-118-d9534f?style=flat-square)
 
-**Acceptance Rate:** 81.5% | **Ranking:** 128,091 | **Contribution Points:** 3,853
+**Acceptance Rate:** 81.5% | **Ranking:** 127,687 | **Contribution Points:** 3,853
 <!-- LEETCODE_STATS:END -->
 
 > 📅 **Last Updated:** Auto-updated daily via GitHub Actions
@@ -121,6 +121,6 @@ This repository follows a structured approach to mastering data structures and a
 
 **Happy Coding! 🚀**
 
-*Last auto-updated: <!-- LAST_UPDATE:START -->2026-11-22<!-- LAST_UPDATE:END -->*
+*Last auto-updated: <!-- LAST_UPDATE:START -->2026-11-23<!-- LAST_UPDATE:END -->*
 
 </div>
